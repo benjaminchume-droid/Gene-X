@@ -1,39 +1,43 @@
-"""Core Gene X runtime.
-
-The runtime coordinates state and work. Intelligence is supplied by composable
-cognition, memory, tools, and specialist components rather than embedded here.
-"""
+"""Core runtime orchestration for persistent, incremental work."""
 from __future__ import annotations
-
 from dataclasses import dataclass, field
-from typing import Callable
-
-from .events import Event, EventBus
+from typing import Callable, Any
 from .state import RuntimeState
+from .events import EventBus, Event
 
-@dataclass(slots=True)
+@dataclass
 class Runtime:
     state: RuntimeState = field(default_factory=RuntimeState)
     events: EventBus = field(default_factory=EventBus)
     running: bool = False
-    _steps: list[Callable[[RuntimeState], None]] = field(default_factory=list)
+    steps: int = 0
 
-    def add_step(self, step: Callable[[RuntimeState], None]) -> None:
-        self._steps.append(step)
+    def add_step(self, operation: Callable[[], Any]) -> Any:
+        if not self.running:
+            raise RuntimeError("runtime is not running")
+        self.steps += 1
+        result = operation()
+        self.events.publish(Event(kind="step.completed", payload={"step": self.steps}))
+        return result
 
     def start(self) -> None:
         self.running = True
-        self.events.publish(Event("runtime.started", source="runtime"))
+        self.events.publish(Event(kind="runtime.started"))
 
     def stop(self) -> None:
         self.running = False
-        self.events.publish(Event("runtime.stopped", source="runtime"))
+        self.events.publish(Event(kind="runtime.stopped"))
 
-    def step(self) -> None:
+    def pause(self) -> None:
+        self.running = False
+        self.events.publish(Event(kind="runtime.paused"))
+
+    def resume(self) -> None:
+        self.running = True
+        self.events.publish(Event(kind="runtime.resumed"))
+
+    def run_until(self, predicate: Callable[[RuntimeState], bool], operation: Callable[[], Any]) -> None:
         if not self.running:
             raise RuntimeError("runtime is not running")
-        for operation in tuple(self._steps):
-            operation(self.state)
-        self.events.publish(Event("runtime.stepped",
-                                  {"version": self.state.version},
-                                  source="runtime"))
+        while not predicate(self.state):
+            self.add_step(operation)
