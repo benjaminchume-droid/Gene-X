@@ -6,13 +6,13 @@ from typing import Callable, Iterable, TypeVar
 T = TypeVar("T")
 
 def breadth_first(start: T, expand: Callable[[T], Iterable[T]], goal: Callable[[T], bool]) -> T | None:
-    queue = deque([start])
+    queue: deque[T] = deque([start])
     seen: set[T] = {start}
     while queue:
-        current = queue.popleft()
-        if goal(current):
-            return current
-        for child in expand(current):
+        node = queue.popleft()
+        if goal(node):
+            return node
+        for child in expand(node):
             if child not in seen:
                 seen.add(child)
                 queue.append(child)
