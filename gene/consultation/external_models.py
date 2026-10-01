@@ -1,13 +1,14 @@
-"""External model boundary. Models are providers, not authorities."""
+"""External model boundary with explicit source identity."""
 from __future__ import annotations
 from typing import Any, Protocol
 
-class ExternalModel(Protocol):
+class ExternalModelBackend(Protocol):
     def generate(self, prompt: Any, **kwargs: Any) -> Any: ...
 
-class ModelConsultant:
-    def __init__(self, model: ExternalModel) -> None:
-        self.model = model
+class ExternalModel:
+    def __init__(self, name: str, backend: ExternalModelBackend) -> None:
+        self.name = name
+        self.backend = backend
 
-    def ask(self, prompt: Any, **kwargs: Any) -> Any:
-        return self.model.generate(prompt, **kwargs)
+    def generate(self, prompt: Any, **kwargs: Any) -> Any:
+        return self.backend.generate(prompt, **kwargs)
