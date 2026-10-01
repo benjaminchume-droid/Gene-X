@@ -1,12 +1,23 @@
-"""Human-in-the-loop consultation boundary."""
+"""Explicit human consultation boundary."""
 from __future__ import annotations
+from dataclasses import dataclass
 from typing import Any, Callable
 
-class HumanInput:
-    def __init__(self, request: Callable[[str, Any], Any]) -> None:
+@dataclass(frozen=True)
+class HumanRequest:
+    question: str
+    context: Any = None
+    urgency: str = "normal"
+
+@dataclass(frozen=True)
+class HumanResponse:
+    answer: Any
+    respondent: str | None = None
+    metadata: dict[str, Any] | None = None
+
+class HumanConsultation:
+    def __init__(self, request: Callable[[HumanRequest], HumanResponse]) -> None:
         self.request = request
 
-    def ask(self, question: str, context: Any = None) -> Any:
-        if not question.strip():
-            raise ValueError("question must not be empty")
-        return self.request(question, context)
+    def ask(self, question: str, *, context: Any = None, urgency: str = "normal") -> HumanResponse:
+        return self.request(HumanRequest(question, context, urgency))
