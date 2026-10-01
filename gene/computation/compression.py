@@ -1,14 +1,17 @@
-"""Compression interface for compact representations."""
+"""Compression boundary for representations that benefit from compact storage."""
 from __future__ import annotations
-from typing import Any, Callable
+from typing import Any, Protocol
+
+class Codec(Protocol):
+    def encode(self, value: Any) -> bytes: ...
+    def decode(self, payload: bytes) -> Any: ...
 
 class Compressor:
-    def __init__(self, encode: Callable[[Any], Any], decode: Callable[[Any], Any]) -> None:
-        self.encode = encode
-        self.decode = decode
+    def __init__(self, codec: Codec) -> None:
+        self.codec = codec
 
-    def compress(self, value: Any) -> Any:
-        return self.encode(value)
+    def compress(self, value: Any) -> bytes:
+        return self.codec.encode(value)
 
-    def decompress(self, value: Any) -> Any:
-        return self.decode(value)
+    def decompress(self, payload: bytes) -> Any:
+        return self.codec.decode(payload)
