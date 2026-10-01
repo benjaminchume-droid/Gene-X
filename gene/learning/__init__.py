@@ -1,0 +1,1 @@
+"""Gene X package boundary."""
