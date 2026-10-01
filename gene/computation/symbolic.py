@@ -1,16 +1,16 @@
-"""Symbolic expression primitives independent of a particular solver."""
+"""Symbolic transformation boundary for exact computation."""
 from __future__ import annotations
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
-@dataclass(frozen=True)
-class Symbol:
-    name: str
+class SymbolicSystem:
+    def __init__(self) -> None:
+        self._rules: list[Callable[[Any], Any]] = []
 
-@dataclass(frozen=True)
-class Expression:
-    operator: str
-    operands: tuple[Any, ...]
+    def add_rule(self, rule: Callable[[Any], Any]) -> None:
+        self._rules.append(rule)
 
-    def __iter__(self):
-        return iter(self.operands)
+    def transform(self, value: Any) -> Any:
+        result = value
+        for rule in self._rules:
+            result = rule(result)
+        return result
