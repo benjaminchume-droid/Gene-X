@@ -1,15 +1,15 @@
-"""Browser-agent boundary for external research and interaction."""
+"""Browser-agent boundary for externally hosted interfaces."""
 from __future__ import annotations
 from typing import Any, Protocol
 
-class BrowserAgent(Protocol):
-    def research(self, objective: str, **kwargs: Any) -> Any: ...
+class BrowserAgentBackend(Protocol):
+    def run(self, objective: str, **kwargs: Any) -> Any: ...
 
-class BrowserConsultant:
-    def __init__(self, agent: BrowserAgent) -> None:
-        self.agent = agent
+class BrowserAgent:
+    def __init__(self, backend: BrowserAgentBackend) -> None:
+        self.backend = backend
 
-    def research(self, objective: str, **kwargs: Any) -> Any:
+    def run(self, objective: str, **kwargs: Any) -> Any:
         if not objective.strip():
             raise ValueError("objective must not be empty")
-        return self.agent.research(objective, **kwargs)
+        return self.backend.run(objective, **kwargs)
