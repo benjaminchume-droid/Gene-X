@@ -1,10 +1,9 @@
-"""World events as observable changes, separate from runtime events."""
+"""World events as observable changes."""
 from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
-
 @dataclass(frozen=True, slots=True)
 class WorldEvent:
     event_type: str
