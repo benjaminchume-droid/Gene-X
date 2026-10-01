@@ -9,4 +9,4 @@ class ModelProvider(Protocol):
 class ModelCapability:
     @staticmethod
     def from_provider(provider:ModelProvider)->Capability:
-        return Capability(name=f"model:{provider.name}",description=f"Model provider {provider.name}",invoke=lambda args:provider.invoke(args),source="model",metadata if False else {})
+        return Capability(name=f"model:{provider.name}",description=f"Model provider {provider.name}",invoke=lambda args:provider.invoke(args),source="model")
