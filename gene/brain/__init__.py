@@ -1,19 +1,24 @@
-"""Hybrid cognitive core for Gene X.
-
-The brain layer combines learned continuous computation with explicit
-concept/state/relation structures, bounded working context, and durable
-objective state. Language is an interface, not the underlying thought space.
-"""
-from .model import GeneBrain, BrainOutput
-from .representation import FeatureVector, StructuredExample, encode_structure
+"""Gene X cognitive substrate."""
+from .cycle import CognitionCycle, CycleAction, CycleEvaluation, CycleObservation, CycleResult
+from .model import BrainOutput, GeneBrain
+from .representation import (
+    FeatureVector,
+    Representation,
+    RepresentationTrainingReport,
+    StructuredExample,
+    TrainableRepresentation,
+    encode_structure,
+)
 from .context import ContextBucket, ContextStore
 from .training import BrainTrainer, TrainingSample, TrainingReport
 from .long_task import LongTaskController, LongTaskState
-from .cognitive import CognitiveSystem, CognitiveState
-from .persistence import save_brain, load_brain
+from .persistence import load_brain, save_brain
 
 __all__ = [
-    "GeneBrain", "BrainOutput", "FeatureVector", "StructuredExample",
-    "encode_structure", "ContextBucket", "ContextStore", "BrainTrainer",
-    "TrainingSample", "TrainingReport", "LongTaskController", "LongTaskState",
+    "BrainOutput", "GeneBrain", "TrainableRepresentation",
+    "FeatureVector", "Representation", "RepresentationTrainingReport",
+    "StructuredExample", "encode_structure",
+    "CognitionCycle", "CycleObservation", "CycleAction", "CycleEvaluation", "CycleResult",
+    "ContextBucket", "ContextStore", "BrainTrainer", "TrainingSample", "TrainingReport",
+    "LongTaskController", "LongTaskState", "save_brain", "load_brain",
 ]
