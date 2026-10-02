@@ -52,9 +52,18 @@ jobs:
           - name: capabilities
             path: tests/test_capabilities.py
             filter: ""
-          - name: red-production
+          - name: metacognition
             path: tests/test_red_production.py
-            filter: ""
+            filter: test_metacognition
+          - name: world-model
+            path: tests/test_red_production.py
+            filter: test_world_model
+          - name: distributed-aggregation
+            path: tests/test_red_production.py
+            filter: test_distributed
+          - name: benchmark-dataset
+            path: tests/test_red_production.py
+            filter: test_benchmark
           - name: training-dataset
             path: tests/test_training_dataset.py
             filter: ""
