@@ -52,6 +52,9 @@ jobs:
           - name: capabilities
             path: tests/test_capabilities.py
             filter: ""
+          - name: red-production
+            path: "tests/test_red_production.py tests/test_training_dataset.py"
+            filter: ""
           - name: compile
             path: ""
             filter: ""
