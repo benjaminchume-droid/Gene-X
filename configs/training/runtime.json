@@ -1,0 +1,1 @@
+{"max_workers":1,"step_timeout_seconds":900.0,"checkpoint_interval":100,"deterministic":true,"metadata":{"profile":"training"}}
