@@ -9,6 +9,8 @@ from .representation import FeatureVector, StructuredExample, encode_structure
 from .context import ContextBucket, ContextStore
 from .training import BrainTrainer, TrainingSample, TrainingReport
 from .long_task import LongTaskController, LongTaskState
+from .cognitive import CognitiveSystem, CognitiveState
+from .persistence import save_brain, load_brain
 
 __all__ = [
     "GeneBrain", "BrainOutput", "FeatureVector", "StructuredExample",
