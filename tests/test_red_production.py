@@ -1,7 +1,7 @@
 from gene.cognition.metacognition import CognitiveOperation, MetacognitiveController, OperationOutcome
 from gene.world.predictive import LearnedWorldModel
 from gene.training.synchronize import average_state_dicts
-from gene.training.dataset import DatasetCatalog
+from gene.training.catalog import DatasetCatalog
 from benchmarks.datasets import BenchmarkDataset, BenchmarkRecord
 
 def test_metacognition_learns_operation_value():
