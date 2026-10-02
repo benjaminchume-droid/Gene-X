@@ -6,7 +6,8 @@ injected; no fake remote workers are hidden here.
 from __future__ import annotations
 from dataclasses import dataclass
 from concurrent.futures import Executor, Future
-from typing import Callable, Iterable, TypeVar
+from typing import Any, Callable, Iterable, TypeVar
+from .synchronize import average_state_dicts
 
 T=TypeVar("T"); R=TypeVar("R")
 @dataclass(frozen=True, slots=True)
@@ -31,3 +32,8 @@ class DistributedTrainer:
             futures: list[Future[R]]=[self.executor.submit(worker,WorkerSpec(r,world_size),shards[r]) for r in range(world_size)]
             results=tuple(f.result() for f in futures)
         return DistributedResult(results,world_size)
+    def run_synchronous(self, records: Iterable[T], worker: Callable[[WorkerSpec, list[T]], dict[str, Any]], *, world_size: int = 1) -> dict[str, Any]:
+        """Run disjoint workers and synchronously average their trainable states."""
+        result = self.run(records, worker, world_size=world_size)
+        return average_state_dicts(list(result.results))
+
