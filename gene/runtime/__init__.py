@@ -6,4 +6,12 @@ from .recovery import RecoveryPolicy, RecoveryAction
 from .autonomous import AutonomousDriver, AutonomousRun
 from .persistence import RuntimePersistence
 from .learning_loop import LearningLoop
-__all__=["CognitiveRuntime","ExecutionRecord","Runtime","Scheduler","ScheduledWork","RecoveryPolicy","RecoveryAction","AutonomousDriver","AutonomousRun","RuntimePersistence","LearningLoop"]
+from .arbiter import Arbitration, ObjectiveArbiter, ResourceBudget
+from .journal import JournalEntry, RuntimeJournal
+from .organism import GeneOrganism, OrganismObservation
+__all__=[
+    "CognitiveRuntime","ExecutionRecord","Runtime","Scheduler","ScheduledWork",
+    "RecoveryPolicy","RecoveryAction","AutonomousDriver","AutonomousRun",
+    "RuntimePersistence","LearningLoop","Arbitration","ObjectiveArbiter",
+    "ResourceBudget","JournalEntry","RuntimeJournal","GeneOrganism","OrganismObservation",
+]
