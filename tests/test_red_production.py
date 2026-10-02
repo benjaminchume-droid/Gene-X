@@ -7,7 +7,8 @@ from benchmarks.datasets import BenchmarkDataset, BenchmarkRecord
 def test_metacognition_learns_operation_value():
     c=MetacognitiveController()
     c.register(CognitiveOperation("a",lambda:1)); c.register(CognitiveOperation("b",lambda:2))
-    c.learn(OperationOutcome("a","x",0.0)); c.learn(OperationOutcome("b","x",1.0))
+    key=c.context_key("x")
+    c.learn(OperationOutcome("a",key,0.0)); c.learn(OperationOutcome("b",key,1.0))
     assert c.choose("x").name=="b"
 
 def test_world_model_produces_prediction_and_counterfactuals():
