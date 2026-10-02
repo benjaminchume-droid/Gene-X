@@ -46,3 +46,13 @@ def test_world_reasoning_and_evaluation():
     assert inferred is not None and inferred.value=="ready"
     report=EvaluationSuite([EvaluationCase("case",lambda:3,lambda x:1.0)]).run()
     assert report.score==1.0
+
+
+def test_autonomous_driver_drains_ready_work():
+    from gene.runtime.autonomous import AutonomousDriver
+    runtime=CognitiveRuntime()
+    objective=runtime.add_objective("autonomous")
+    runtime.add_task(objective,lambda:1)
+    report=AutonomousDriver(runtime).run()
+    assert report.completed==1
+    assert not runtime.ready()
