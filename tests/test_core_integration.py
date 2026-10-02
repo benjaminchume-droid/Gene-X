@@ -56,3 +56,17 @@ def test_autonomous_driver_drains_ready_work():
     report=AutonomousDriver(runtime).run()
     assert report.completed==1
     assert not runtime.ready()
+
+
+def test_runtime_snapshot_round_trip(tmp_path):
+    from gene.runtime.persistence import RuntimePersistence
+    runtime=CognitiveRuntime()
+    objective=runtime.add_objective("persisted")
+    task=runtime.add_task(objective,lambda:7)
+    path=tmp_path/"runtime.json"
+    RuntimePersistence().save(runtime,path)
+    restored=CognitiveRuntime()
+    RuntimePersistence().restore(restored,path,lambda t: (lambda:7))
+    assert restored.objectives.get(objective.objective_id).description=="persisted"
+    assert restored.graph.tasks[task.task_id].result is None
+    assert restored.graph.tasks[task.task_id].status.value=="pending"
