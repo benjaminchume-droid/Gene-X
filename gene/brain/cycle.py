@@ -20,6 +20,7 @@ from gene.substrate.state import StateStore
 from gene.substrate.ontology import WorldModel
 from gene.brain.representation import StructuredExample
 from gene.brain.model import GeneBrain
+from gene.memory.retrieval import MemoryRetriever
 
 
 @dataclass(frozen=True)
@@ -67,6 +68,15 @@ class CognitionCycle:
         self.procedural = procedural or ProceduralMemory()
         self.memory = memory or MemoryStore()
         self.step_count = 0
+        self.retriever = MemoryRetriever(self.memory, self._memory_vector)
+
+    @staticmethod
+    def _memory_vector(value: Any) -> tuple[float, ...]:
+        raw = repr(value).encode('utf-8')
+        vector = [0.0] * 32
+        for index, byte in enumerate(raw):
+            vector[index % 32] += (byte / 255.0) - 0.5
+        return tuple(vector)
 
     def _remember(self, observation: CycleObservation) -> tuple[Any, ...]:
         recent = self.episodic.recent(limit=8)
@@ -90,10 +100,12 @@ class CognitionCycle:
             objective = ready[0] if ready else None
         if objective is not None:
             self.state.set("active_objective", objective.objective_id, source="cognition-cycle")
+        retrieved = self.retriever.query(observation.value, limit=8)
         interpretation = self.brain.predict(observation.structure) if self.brain.labels else self.brain.representation.encode(observation.structure)
+        self.state.set('retrieved_memories', retrieved, source='cognition-cycle')
         self.state.set("last_interpretation", interpretation, source="cognition-cycle")
         self.working.add(interpretation)
-        action = action_selector(interpretation, objective, recent) if action_selector else None
+        action = action_selector(interpretation, objective, tuple(recent) + tuple(item.record.value for item in retrieved)) if action_selector else None
         execution = executor(action) if action is not None and executor is not None else None
         evaluation = evaluator(action, execution, observation) if action is not None and evaluator is not None else None
         if world_updater is not None:
