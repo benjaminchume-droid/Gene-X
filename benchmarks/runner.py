@@ -1,27 +1,34 @@
-"""Benchmark runner with no embedded domain assumptions."""
+"""Generic capability evaluation runner."""
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class BenchmarkCase:
     case_id: str
     input: Any
     expected: Any = None
-    metadata: dict[str, Any] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class BenchmarkResult:
     case_id: str
-    score: float
     passed: bool
-    output: Any
+    score: float
+    output: Any = None
+    error: str | None = None
 
 class BenchmarkRunner:
-    def run(self, cases: Iterable[BenchmarkCase], system: Callable[[Any], Any], judge: Callable[[BenchmarkCase, Any], tuple[float, bool]]) -> tuple[BenchmarkResult, ...]:
+    def __init__(self, evaluator: Callable[[Any], Any]):
+        self.evaluator = evaluator
+
+    def run(self, cases: Iterable[BenchmarkCase]) -> tuple[BenchmarkResult, ...]:
         results = []
         for case in cases:
-            output = system(case.input)
-            score, passed = judge(case, output)
-            results.append(BenchmarkResult(case.case_id, float(score), bool(passed), output))
+            try:
+                output = self.evaluator(case.input)
+                passed = case.expected is None or output == case.expected
+                results.append(BenchmarkResult(case.case_id, passed, 1.0 if passed else 0.0, output))
+            except Exception as exc:
+                results.append(BenchmarkResult(case.case_id, False, 0.0, error=repr(exc)))
         return tuple(results)
