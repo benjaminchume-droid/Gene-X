@@ -1,0 +1,1 @@
+{"max_workers":1,"step_timeout_seconds":300.0,"checkpoint_interval":10,"deterministic":true,"metadata":{"profile":"development"}}
