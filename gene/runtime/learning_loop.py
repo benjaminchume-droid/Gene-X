@@ -12,7 +12,7 @@ class LearningLoop:
     evaluator: Callable[[Any, Any], tuple[LearningSignal, ...]]
 
     def observe(self, experience: Experience) -> Any:
-        signals = self.evaluator(experience.action, experience.outcome)
+        signals = self.evaluator(experience.input, experience.outcome)
         return self.organism.learn(experience, signals)
 
     def run(self, experiences: list[Experience]) -> tuple[Any, ...]:
