@@ -1,17 +1,18 @@
-"""A small, real trainable hybrid model.
-
-The learned component is a neural function over structured features. It is
-surrounded by explicit state and context so the whole system does not reduce
-to next-token prediction.
-"""
+"""Learned cognitive substrate built on the adaptive representation system."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, tanh
+from math import exp
 from random import Random
 from typing import Iterable
 
-from .representation import FeatureVector, StructuredExample, encode_structure
+from .representation import (
+    FeatureVector,
+    Representation,
+    StructuredExample,
+    TrainableRepresentation,
+    encode_structure,
+)
 
 
 @dataclass(frozen=True)
@@ -19,101 +20,149 @@ class BrainOutput:
     label: str
     probabilities: dict[str, float]
     confidence: float
+    representation: Representation
 
 
 class GeneBrain:
-    """One-hidden-layer classifier used as the first trainable neural substrate.
+    """Trainable hybrid brain.
 
-    It intentionally has no tokenizer dependency. A richer specialist can later
-    replace this component behind the same interface.
+    The representation is independently trainable and reusable. The optional
+    supervised head learns a task over that representation; it is not the
+    representation itself and does not define Gene's knowledge.
     """
 
-    def __init__(self, *, input_size: int = 4096, hidden_size: int = 96, seed: int = 7) -> None:
-        if input_size < 64 or hidden_size < 4:
-            raise ValueError("invalid model dimensions")
-        self.input_size = input_size
-        self.hidden_size = hidden_size
+    def __init__(
+        self,
+        *,
+        input_size: int = 8192,
+        embedding_size: int = 48,
+        representation_size: int = 128,
+        seed: int = 7,
+    ) -> None:
+        self.representation = TrainableRepresentation(
+            input_size=input_size,
+            embedding_size=embedding_size,
+            representation_size=representation_size,
+            seed=seed,
+        )
         self.labels: list[str] = []
-        self._rng = Random(seed)
-        scale = (2.0 / input_size) ** 0.5
-        self.w1 = [[self._rng.uniform(-scale, scale) for _ in range(input_size)] for _ in range(hidden_size)]
-        self.b1 = [0.0] * hidden_size
-        self.w2: list[list[float]] = []
-        self.b2: list[float] = []
+        self._rng = Random(seed + 1)
+        self.head: list[list[float]] = []
+        self.head_bias: list[float] = []
 
     def _ensure_labels(self, labels: Iterable[str]) -> None:
         for label in labels:
             if label in self.labels:
                 continue
-            old = len(self.labels)
             self.labels.append(label)
-            self.w2.append([self._rng.uniform(-0.05, 0.05) for _ in range(self.hidden_size)])
-            self.b2.append(0.0)
-            if old == 0:
-                continue
-
-    def _hidden(self, x: FeatureVector) -> list[float]:
-        hidden = []
-        for row, bias in zip(self.w1, self.b1):
-            value = bias
-            for i, v in x.items():
-                value += row[i] * v
-            hidden.append(tanh(value))
-        return hidden
+            scale = 1.0 / max(1, self.representation.representation_size) ** 0.5
+            self.head.append([
+                self._rng.uniform(-scale, scale)
+                for _ in range(self.representation.representation_size)
+            ])
+            self.head_bias.append(0.0)
 
     def _softmax(self, logits: list[float]) -> list[float]:
         if not logits:
             return []
-        m = max(logits)
-        exps = [exp(min(40.0, z - m)) for z in logits]
-        total = sum(exps)
-        return [v / total for v in exps]
+        maximum = max(logits)
+        values = [exp(min(40.0, value - maximum)) for value in logits]
+        total = sum(values)
+        return [value / total for value in values]
 
     def predict(self, example: StructuredExample | FeatureVector) -> BrainOutput:
         if not self.labels:
-            raise RuntimeError("brain has no learned labels")
-        x = example if isinstance(example, FeatureVector) else encode_structure(example, self.input_size)
-        h = self._hidden(x)
-        probs = self._softmax([sum(w * a for w, a in zip(row, h)) + b for row, b in zip(self.w2, self.b2)])
-        idx = max(range(len(probs)), key=probs.__getitem__)
-        return BrainOutput(self.labels[idx], dict(zip(self.labels, probs)), probs[idx])
+            raise RuntimeError("brain has no supervised labels; train a head first")
+        representation = self.representation.encode(example)
+        logits = [
+            sum(w * x for w, x in zip(row, representation.values)) + bias
+            for row, bias in zip(self.head, self.head_bias)
+        ]
+        probabilities = self._softmax(logits)
+        index = max(range(len(probabilities)), key=probabilities.__getitem__)
+        return BrainOutput(
+            self.labels[index],
+            dict(zip(self.labels, probabilities)),
+            probabilities[index],
+            representation,
+        )
 
-    def train_step(self, x: FeatureVector, target: str, learning_rate: float = 0.03) -> float:
-        """Perform one real gradient update and return cross-entropy loss."""
-        if target not in self.labels:
-            self._ensure_labels([target])
-        h = self._hidden(x)
-        logits = [sum(w * a for w, a in zip(row, h)) + b for row, b in zip(self.w2, self.b2)]
-        probs = self._softmax(logits)
-        target_i = self.labels.index(target)
-        loss = -__import__("math").log(max(probs[target_i], 1e-12))
+    def train_representation(
+        self,
+        examples: Iterable[StructuredExample],
+        *,
+        epochs: int = 1,
+        learning_rate: float = 0.01,
+    ):
+        return self.representation.train_autoencoding(
+            examples, epochs=epochs, learning_rate=learning_rate
+        )
 
-        grad_logits = probs[:]
-        grad_logits[target_i] -= 1.0
-        grad_h = [0.0] * self.hidden_size
-        old_w2 = [row[:] for row in self.w2]
-        for j, g in enumerate(grad_logits):
-            self.b2[j] -= learning_rate * g
-            for k in range(self.hidden_size):
-                grad_h[k] += g * old_w2[j][k]
-                self.w2[j][k] -= learning_rate * g * h[k]
+    def train_pairs(
+        self,
+        pairs: Iterable[tuple[StructuredExample, StructuredExample, float]],
+        *,
+        epochs: int = 1,
+        learning_rate: float = 0.01,
+    ):
+        return self.representation.train_pairs(
+            pairs, epochs=epochs, learning_rate=learning_rate
+        )
 
-        for k, gh in enumerate(grad_h):
-            dz = gh * (1.0 - h[k] * h[k])
-            self.b1[k] -= learning_rate * dz
-            for i, v in x.items():
-                self.w1[k][i] -= learning_rate * dz * v
-        return loss
-
-    def train(self, examples: Iterable[tuple[StructuredExample, str]], *, epochs: int = 1, learning_rate: float = 0.03) -> list[float]:
-        examples = list(examples)
-        if not examples:
+    def train(
+        self,
+        examples: Iterable[tuple[StructuredExample, str]],
+        *,
+        epochs: int = 1,
+        learning_rate: float = 0.01,
+    ) -> list[float]:
+        batch = list(examples)
+        if not batch:
             return []
-        self._ensure_labels(label for _, label in examples)
+        self._ensure_labels(label for _, label in batch)
         losses: list[float] = []
         for _ in range(epochs):
             total = 0.0
-            for example, target in examples:
-                total += self.train_step(encode_structure(example, self.input_size), target, learning_rate)
-            losses.append(total / len(examples))
+            for example, target in batch:
+                representation = self.representation.encode(example)
+                logits = [
+                    sum(w * x for w, x in zip(row, representation.values)) + bias
+                    for row, bias in zip(self.head, self.head_bias)
+                ]
+                probabilities = self._softmax(logits)
+                target_i = self.labels.index(target)
+                loss = -__import__("math").log(max(probabilities[target_i], 1e-12))
+                grad = probabilities[:]
+                grad[target_i] -= 1.0
+                for i, g in enumerate(grad):
+                    self.head_bias[i] -= learning_rate * g
+                    for j in range(len(self.head[i])):
+                        self.head[i][j] -= learning_rate * g * representation.values[j]
+                total += loss
+            losses.append(total / len(batch))
         return losses
+
+    def state_dict(self) -> dict:
+        return {
+            "representation": self.representation.state_dict(),
+            "labels": self.labels[:],
+            "head": [row[:] for row in self.head],
+            "head_bias": self.head_bias[:],
+        }
+
+    @classmethod
+    def from_state_dict(cls, state: dict) -> "GeneBrain":
+        representation = TrainableRepresentation.from_state_dict(state["representation"])
+        obj = cls(
+            input_size=representation.input_size,
+            embedding_size=representation.embedding_size,
+            representation_size=representation.representation_size,
+        )
+        obj.representation = representation
+        obj.labels = list(state.get("labels", []))
+        obj.head = [list(row) for row in state.get("head", [])]
+        obj.head_bias = list(state.get("head_bias", []))
+        return obj
+
+
+__all__ = ["BrainOutput", "FeatureVector", "StructuredExample", "GeneBrain", "TrainableRepresentation", "encode_structure"]
