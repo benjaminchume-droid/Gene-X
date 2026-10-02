@@ -68,6 +68,23 @@ class UniversalFoundationModel:
         pooled=tuple(sum(row[d] for row in outputs)/len(outputs) for d in range(self.hidden_size))
         return FoundationOutput(tuple(outputs),pooled)
 
+    def state_dict(self) -> dict:
+        return {
+            "input_size": self.input_size, "hidden_size": self.hidden_size,
+            "input_projection": [row[:] for row in self.input_projection],
+            "query": [row[:] for row in self.query], "key": [row[:] for row in self.key],
+            "value": [row[:] for row in self.value], "output": [row[:] for row in self.output],
+        }
+
+    def load_state_dict(self, state: dict) -> None:
+        if int(state["input_size"]) != self.input_size or int(state["hidden_size"]) != self.hidden_size:
+            raise ValueError("model dimensions do not match state")
+        self.input_projection = [list(row) for row in state["input_projection"]]
+        self.query = [list(row) for row in state["query"]]
+        self.key = [list(row) for row in state["key"]]
+        self.value = [list(row) for row in state["value"]]
+        self.output = [list(row) for row in state["output"]]
+
     def fit(self, samples: Iterable[tuple[Iterable[Iterable[float]], Iterable[float]]], *, epochs:int=1, learning_rate:float=0.001) -> FoundationStep:
         batch=[(tuple(tuple(x) for x in seq),tuple(target)) for seq,target in samples]
         if epochs<1 or learning_rate<=0: raise ValueError("invalid training configuration")
