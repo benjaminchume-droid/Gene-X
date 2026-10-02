@@ -36,3 +36,16 @@ class RuntimePersistence:
         data=json.loads(Path(path).read_text(encoding="utf-8"))
         if int(data.get("version",0))!=self.VERSION: raise ValueError("unsupported runtime snapshot version")
         return data
+
+    def restore(self,runtime:CognitiveRuntime,path:str|Path,resolve_operation):
+        data=self.load_state(path)
+        from gene.objectives.model import Objective, ObjectiveStatus
+        from gene.tasks.task import Task, TaskStatus
+        runtime.objectives.objectives.clear(); runtime.graph.tasks.clear(); runtime._operations.clear()
+        for raw in data["objectives"]:
+            objective=Objective(description=raw["description"],objective_id=raw["id"],status=ObjectiveStatus(raw["status"]),parent_id=raw["parent_id"],dependencies=set(raw["dependencies"]),additions=list(raw["additions"]),constraints=list(raw["constraints"]),metadata=dict(raw["metadata"]),version=int(raw["version"]))
+            runtime.objectives.objectives[objective.objective_id]=objective
+        for raw in data["tasks"]:
+            task=Task(objective=raw["objective"],task_id=raw["id"],status=TaskStatus(raw["status"]),dependencies=set(raw["dependencies"]),metadata=dict(raw["metadata"]),result=raw["result"],error=raw["error"])
+            runtime.graph.add(task); runtime._operations[task.task_id]=resolve_operation(task)
+        return runtime
