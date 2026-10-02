@@ -7,4 +7,6 @@ from .curriculum_runtime import AdaptiveCurriculum, CurriculumDecision, LessonSc
 from .signals import LearningSignal, LearningOutcome, SignalKind
 from .organism import LearningOrganism, OrganismStep
 from .adapters import RepresentationAdapter, ProcedureAdapter, RoutingAdapter
-__all__=["Dataset","Sample","ReplayBuffer","ContinualLearner","ContinualStep","ProtectedLearner","LearningReport","LearningStep","AdaptiveCurriculum","CurriculumDecision","LessonScore","LearningSignal","LearningOutcome","SignalKind","LearningOrganism","OrganismStep","RepresentationAdapter","ProcedureAdapter","RoutingAdapter"]
+from .engine import ExperienceTrainer, TeacherFeedback
+from .replay import PrioritizedReplay
+__all__=["Dataset","Sample","ReplayBuffer","ContinualLearner","ContinualStep","ProtectedLearner","LearningReport","LearningStep","AdaptiveCurriculum","CurriculumDecision","LessonScore","LearningSignal","LearningOutcome","SignalKind","LearningOrganism","OrganismStep","RepresentationAdapter","ProcedureAdapter","RoutingAdapter","ExperienceTrainer","TeacherFeedback","PrioritizedReplay"]

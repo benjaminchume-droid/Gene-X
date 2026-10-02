@@ -17,8 +17,12 @@ class ConsultativeLoop:
                  execute:Callable[[Any],Any],verify:Callable[[Any,Any],tuple[bool,Any]],
                  learn:Callable[[Any,Any,Any],None]|None=None)->None:
         self.manager,self.synthesize,self.execute,self.verify,self.learn=manager,synthesize,execute,verify,learn
+
     def run(self,request:ConsultationRequest,*,sources:list[str]|None=None)->ConsultationAttempt:
-        results=self.manager.consult_many(request,sources); candidate=self.synthesize(results)
-        execution=self.execute(candidate); verified,evidence=self.verify(candidate,execution)
-        if self.learn:self.learn(candidate,execution,evidence)
+        results=self.manager.consult_many(request,sources)
+        candidate=self.synthesize(results)
+        execution=self.execute(candidate)
+        verified,evidence=self.verify(candidate,execution)
+        if self.learn and verified:
+            self.learn(candidate,execution,evidence)
         return ConsultationAttempt(results,candidate,execution,verified,evidence)
