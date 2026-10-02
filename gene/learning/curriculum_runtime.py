@@ -16,8 +16,9 @@ class CurriculumDecision:
 class AdaptiveCurriculum:
     def __init__(self,lessons:Iterable[Any],identify:Callable[[Any],str],measure:Callable[[Any],float])->None:
         self.lessons=tuple(lessons); self.identify=identify; self.measure=measure
+
     def select(self,*,completed:frozenset[str]=frozenset())->CurriculumDecision|None:
         candidates=[x for x in self.lessons if self.identify(x) not in completed]
         if not candidates:return None
-        _,lesson=min((float(self.measure(x)),x) for x in candidates)
+        lesson=min(candidates,key=lambda item:(float(self.measure(item)),self.identify(item)))
         return CurriculumDecision(self.identify(lesson),"lowest measured capability among unfinished lessons")
