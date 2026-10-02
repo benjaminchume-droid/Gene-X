@@ -1,4 +1,4 @@
-"""Gene X cognitive kernel connecting language, substrate and capabilities."""
+"""Gene X cognitive kernel connecting language, substrate, capabilities and learned metacognition."""
 from __future__ import annotations
 from dataclasses import dataclass,field
 from typing import Any
@@ -8,16 +8,41 @@ from gene.capabilities.registry import CapabilityRegistry
 from gene.capabilities.router import CapabilityRouter,CapabilityRequest
 from gene.language.interpreter import Interpreter
 from gene.language.grounding import Grounder
+from .metacognition import CognitiveOperation, MetacognitiveController
+
 @dataclass
 class CognitiveKernel:
- state:StateStore=field(default_factory=StateStore); concepts:ConceptGraph=field(default_factory=ConceptGraph); capabilities:CapabilityRegistry=field(default_factory=CapabilityRegistry); interpreter:Interpreter=field(default_factory=Interpreter); grounder:Grounder=field(default_factory=Grounder)
- def observe_language(self,text:str,*,source="language"):
-  representation=self.interpreter.interpret(text,context=self.state.snapshot()); graph=self.grounder.ground(representation)
-  self.state.set("last_language_input",text,source=source); self.state.set("last_language_representation",representation,source=source)
-  for c in graph.concepts.values():self.concepts.add(c)
-  self.concepts.relations.update(graph.relations)
-  return representation,graph
- def capabilities_for(self,purpose,*,permissions=None,names=None):
-  return CapabilityRouter(self.capabilities).resolve(CapabilityRequest(purpose,frozenset(permissions or set()),preferred_names=frozenset(names or set())))
- def invoke(self,name,arguments):
-  result=self.capabilities.get(name).execute(arguments);self.state.set(f"capability:{name}:last",result,source=name);return result
+    state:StateStore=field(default_factory=StateStore)
+    concepts:ConceptGraph=field(default_factory=ConceptGraph)
+    capabilities:CapabilityRegistry=field(default_factory=CapabilityRegistry)
+    interpreter:Interpreter=field(default_factory=Interpreter)
+    grounder:Grounder=field(default_factory=Grounder)
+    metacognition:MetacognitiveController=field(default_factory=MetacognitiveController)
+
+    def observe_language(self,text:str,*,source="language"):
+        representation=self.interpreter.interpret(text,context=self.state.snapshot())
+        graph=self.grounder.ground(representation)
+        self.state.set("last_language_input",text,source=source)
+        self.state.set("last_language_representation",representation,source=source)
+        for c in graph.concepts.values(): self.concepts.add(c)
+        self.concepts.relations.update(graph.relations)
+        return representation,graph
+
+    def capabilities_for(self,purpose,*,permissions=None,names=None):
+        return CapabilityRouter(self.capabilities).resolve(
+            CapabilityRequest(purpose,frozenset(permissions or set()),preferred_names=frozenset(names or set()))
+        )
+
+    def invoke(self,name,arguments):
+        result=self.capabilities.get(name).execute(arguments)
+        self.state.set(f"capability:{name}:last",result,source=name)
+        return result
+
+    def register_cognitive_operation(self,name:str,execute)->None:
+        self.metacognition.register(CognitiveOperation(name,execute))
+
+    def choose_cognitive_operation(self,context:Any):
+        return self.metacognition.choose(context)
+
+    def learn_cognitive_outcome(self,context:Any,operation:str,reward:float):
+        return self.metacognition.observe(context,operation,reward)
