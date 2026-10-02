@@ -30,7 +30,7 @@ class DurableAutonomousDriver:
         if max_cycles is not None and max_cycles<0: raise ValueError("max_cycles cannot be negative")
         started=monotonic(); cycles=completed=failed=0
         self._ingest(); self.checkpoint()
-        while self.runtime.ready() or not self.inbox._queue.empty():
+        while self.runtime.ready() or self.inbox.pending():
             if max_cycles is not None and cycles>=max_cycles: break
             if max_seconds is not None and monotonic()-started>=max_seconds: break
             self._ingest()
