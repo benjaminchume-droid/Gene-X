@@ -9,21 +9,41 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group:
+        include:
+          - name: brain
+            path: tests/test_brain.py
           - name: core
-            path: "tests/test_brain.py tests/test_core_integration.py tests/test_training.py tests/test_substrate_and_language.py"
-          - name: learning
-            path: "tests/learning tests/unit/test_training_primitives.py tests/test_red_learning_substrate.py"
-          - name: runtime
-            path: "tests/runtime tests/test_persistence.py tests/test_runtime_organism.py tests/test_durable_autonomy.py"
+            path: tests/test_core_integration.py
+          - name: training
+            path: tests/test_training.py
+          - name: substrate-language
+            path: tests/test_substrate_and_language.py
+          - name: learning-grounded
+            path: tests/learning/test_grounded_learning.py
+          - name: learning-distillation
+            path: tests/learning/test_distillation.py
+          - name: learning-unit
+            path: tests/unit/test_training_primitives.py
+          - name: red-substrate
+            path: tests/test_red_learning_substrate.py
+          - name: runtime-persistence
+            path: tests/runtime/test_persistence_contract.py
+          - name: persistence
+            path: tests/test_persistence.py
+          - name: runtime-organism
+            path: tests/test_runtime_organism.py
+          - name: durable-autonomy
+            path: tests/test_durable_autonomy.py
           - name: integration
-            path: "tests/integration tests/end-to-end tests/cognition"
+            path: tests/integration tests/end-to-end tests/cognition
           - name: security-tools
-            path: "tests/security tests/tools"
-          - name: capabilities-domain
-            path: "tests/test_capabilities.py tests/test_domain_neutrality.py"
+            path: tests/security tests/tools
+          - name: capabilities
+            path: tests/test_capabilities.py
+          - name: domain-neutrality
+            path: tests/test_domain_neutrality.py
     runs-on: ubuntu-latest
-    name: ${{ matrix.group.name }}
+    name: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,9 +51,8 @@ jobs:
           python-version: '3.11'
       - name: Install package and test runner
         run: python -m pip install -e . pytest
-      - name: Run ${{ matrix.group.name }} tests
+      - name: Run tests
         shell: bash
-        run: |
-          python -m pytest -q ${{ matrix.group.path }}
+        run: python -m pytest -q ${{ matrix.path }}
       - name: Compile package
         run: python -m compileall -q gene trainers benchmarks data configs interfaces
