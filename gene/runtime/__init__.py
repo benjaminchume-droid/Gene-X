@@ -4,4 +4,5 @@ from .engine import Runtime
 from .scheduler import Scheduler, ScheduledWork
 from .recovery import RecoveryPolicy, RecoveryAction
 from .autonomous import AutonomousDriver, AutonomousRun
-__all__=["CognitiveRuntime","ExecutionRecord","Runtime","Scheduler","ScheduledWork","RecoveryPolicy","RecoveryAction","AutonomousDriver","AutonomousRun"]
+from .persistence import RuntimePersistence
+__all__=["CognitiveRuntime","ExecutionRecord","Runtime","Scheduler","ScheduledWork","RecoveryPolicy","RecoveryAction","AutonomousDriver","AutonomousRun","RuntimePersistence"]
