@@ -91,10 +91,11 @@ class GeneBrain:
         grad_logits = probs[:]
         grad_logits[target_i] -= 1.0
         grad_h = [0.0] * self.hidden_size
+        old_w2 = [row[:] for row in self.w2]
         for j, g in enumerate(grad_logits):
             self.b2[j] -= learning_rate * g
             for k in range(self.hidden_size):
-                grad_h[k] += g * self.w2[j][k]
+                grad_h[k] += g * old_w2[j][k]
                 self.w2[j][k] -= learning_rate * g * h[k]
 
         for k, gh in enumerate(grad_h):
