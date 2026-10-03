@@ -10,62 +10,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: brain-learns
-            path: tests/test_brain.py
-            filter: test_structured_brain_learns_without_token_sequences
-          - name: brain-representation
-            path: tests/test_brain.py
-            filter: test_representation_is_trainable_without_labels
-          - name: brain-long-task
-            path: tests/test_brain.py
-            filter: test_long_task_survives_plan_changes
-          - name: brain-cycle
-            path: tests/test_brain.py
-            filter: test_cycle_observes_acts_verifies_and_learns
-          - name: brain-neutral
-            path: tests/test_brain.py
-            filter: test_domain_neutral_primitives
-          - name: red-predictive
-            path: tests/test_red_learning_substrate.py
-            filter: test_predictive_core
-          - name: red-alignment
-            path: tests/test_red_learning_substrate.py
-            filter: test_cross_modal_alignment
-          - name: domain-neutrality
-            path: tests/test_domain_neutrality.py
-            filter: ""
-          - name: core
-            path: "tests/test_core_integration.py tests/test_training.py tests/test_substrate_and_language.py"
+          - name: brain-core
+            path: tests/test_brain.py tests/test_domain_neutrality.py
             filter: ""
           - name: learning
-            path: "tests/learning tests/unit/test_training_primitives.py"
+            path: tests/learning tests/unit/test_training_primitives.py
             filter: ""
           - name: runtime
-            path: "tests/runtime tests/test_persistence.py tests/test_runtime_organism.py tests/test_durable_autonomy.py"
+            path: tests/runtime tests/test_persistence.py tests/test_runtime_organism.py tests/test_durable_autonomy.py
             filter: ""
           - name: integration
-            path: "tests/integration tests/end-to-end tests/cognition"
+            path: tests/integration tests/end-to-end tests/cognition
             filter: ""
           - name: security-tools
-            path: "tests/security tests/tools"
+            path: tests/security tests/tools
+            filter: ""
+          - name: red-production
+            path: tests/test_red_production.py tests/test_red_learning_substrate.py
+            filter: ""
+          - name: training-data
+            path: tests/test_training_dataset.py tests/test_training_pipeline.py
+            filter: ""
+          - name: multimodal-generation
+            path: tests/test_multimodal_and_generation.py
             filter: ""
           - name: capabilities
             path: tests/test_capabilities.py
-            filter: ""
-          - name: metacognition
-            path: tests/test_red_production.py
-            filter: test_metacognition
-          - name: world-model
-            path: tests/test_red_production.py
-            filter: test_world_model
-          - name: distributed-aggregation
-            path: tests/test_red_production.py
-            filter: test_distributed
-          - name: benchmark-dataset
-            path: tests/test_red_production.py
-            filter: test_benchmark
-          - name: training-dataset
-            path: tests/test_training_dataset.py
             filter: ""
           - name: compile
             path: ""
@@ -76,13 +46,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - name: Install package and test runner
         run: python -m pip install -e . pytest
       - name: Run tests
         if: ${{ matrix.name != 'compile' }}
-        shell: bash
-        run: |
-          python -m pytest -q ${{ matrix.path }} ${{ matrix.filter && format('-k "{0}"', matrix.filter) || '' }}
+        run: python -m pytest -q ${{ matrix.path }}
       - name: Compile package
         run: python -m compileall -q gene trainers benchmarks data configs interfaces
