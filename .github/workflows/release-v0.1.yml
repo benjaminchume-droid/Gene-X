@@ -1,6 +1,8 @@
 name: Gene X v0.1 Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
@@ -21,6 +23,7 @@ concurrency:
 
 jobs:
   verify-build-train-package:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'trigger v.0.1 release workflow' }}
     name: Verify, build, train-smoke, package
     runs-on: ubuntu-latest
     outputs:
