@@ -13,6 +13,8 @@ from gene.multimodal.fusion_learning import LearnedFusion
 from gene.generation.engines import TextEngine, ImageEngine, AudioEngine, MusicEngine, VideoEngine, WorldEngine
 from gene.perception.pipeline import PerceptionPipeline, Observation
 from gene.security.policy import Policy
+from gene.learning.organism import LearningOrganism
+from gene.training.organism import GeneTrainingSession
 
 @dataclass(frozen=True, slots=True)
 class GeneCapabilities:
@@ -47,6 +49,7 @@ class GeneSystem(Gene):
     perception: PerceptionPipeline = field(default_factory=PerceptionPipeline)
     security: Policy = field(default_factory=Policy)
     chat_backend: Callable[[Any], str] | None = None
+    learner: LearningOrganism = field(default_factory=LearningOrganism)
     consultation: ConsultationManager = field(default_factory=ConsultationManager)
     tools: ToolRegistry = field(default_factory=ToolRegistry)
     evaluation: EvaluationSuite = field(default_factory=EvaluationSuite)
@@ -58,6 +61,9 @@ class GeneSystem(Gene):
     music: MusicEngine = field(default_factory=MusicEngine)
     video: VideoEngine = field(default_factory=VideoEngine)
     world_generator: WorldEngine = field(default_factory=WorldEngine)
+
+    def training_session(self, teachers=()):
+        return GeneTrainingSession(self.learner, memory=self.organism.memory, teachers=teachers)
 
     def register_chat_backend(self, backend: Callable[[Any], str]) -> None:
         self.chat_backend = backend
