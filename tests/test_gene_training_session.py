@@ -1,14 +1,14 @@
 from gene.system import GeneSystem
 from gene.learning.experience import Experience
-from gene.learning.signals import LearningSignal
+from gene.learning.signals import LearningSignal, SignalKind
 from gene.learning.organism import LearningOutcome
 
 class Learner:
     def learn(self, experience, signals):
-        return LearningOutcome(kind="test", delta=1.0)
+        return LearningOutcome(improved=True, delta=1.0)
 
 def teacher(experience):
-    return (LearningSignal(kind="feedback", value=1.0, source="test"),)
+    return (LearningSignal(kind=SignalKind.REWARD, value=1.0, source="test"),)
 
 def test_gene_training_session_trains_the_organism():
     gene=GeneSystem()
