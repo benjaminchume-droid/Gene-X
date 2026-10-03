@@ -44,10 +44,34 @@ class TrainableEncoder:
                 count+=1
         return EncoderStep(total/max(1,count),count)
 
-class ImageEncoder(TrainableEncoder): pass
-class AudioEncoder(TrainableEncoder): pass
-class VideoEncoder(TrainableEncoder): pass
-class SpatialEncoder(TrainableEncoder): pass
+class ImageEncoder(TrainableEncoder):
+    pass
+
+class AudioEncoder(TrainableEncoder):
+    def encode(self, values, *args):
+        if args:
+            flat=tuple(float(v) for v in values)
+            return EncodedSignal((float(len(flat)),sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(v*v for v in flat)),(len(flat),))
+        return super().encode(values)
+
+class VideoEncoder(TrainableEncoder):
+    def encode(self, values, *args):
+        if args:
+            flat=[]
+            def visit(node):
+                if isinstance(node,(list,tuple)):
+                    for item in node: visit(item)
+                else: flat.append(float(node))
+            visit(values)
+            return EncodedSignal((float(len(flat)),sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(v*v for v in flat)),(len(flat),))
+        return super().encode(values)
+
+class SpatialEncoder(TrainableEncoder):
+    def encode(self, values, *args):
+        if args:
+            rows=[tuple(float(x) for x in row) for row in values]
+            return EncodedSignal(tuple(x for row in rows for x in row),(len(rows),len(rows[0]) if rows else 0))
+        return super().encode(values)
 
 
 @dataclass(frozen=True, slots=True)
