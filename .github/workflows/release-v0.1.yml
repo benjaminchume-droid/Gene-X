@@ -189,15 +189,18 @@ jobs:
           COMMIT: ${{ needs.verify-build-train-package.outputs.commit }}
         run: |
           set -euo pipefail
-          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            EXISTING=$(git ls-remote origin "refs/tags/$TAG" | awk '{print $1}')
-            test "$EXISTING" = "$COMMIT" || {
-              echo "Tag $TAG already exists on a different commit: $EXISTING"
+          git fetch --force --tags origin
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1; then
+            EXISTING_COMMIT=$(git rev-list -n 1 "$TAG")
+            test "$EXISTING_COMMIT" = "$COMMIT" || {
+              echo "Tag $TAG already exists on a different commit: $EXISTING_COMMIT"
               exit 1
             }
+            echo "Tag $TAG already points to verified commit $COMMIT."
           else
             git tag -a "$TAG" "$COMMIT" -m "Gene X $TAG"
             git push origin "$TAG"
+            echo "Created tag $TAG at $COMMIT."
           fi
 
       - name: Create GitHub release
