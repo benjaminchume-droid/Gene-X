@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   verify-build-train-package:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.head_commit.message == 'trigger v.0.1 release workflow' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, 'trigger v.0.1 release workflow')) }}
     name: Verify, build, train-smoke, package
     runs-on: ubuntu-latest
     outputs:
@@ -213,7 +213,15 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; refusing to mutate it."
-            exit 1
+            echo "Release $TAG already exists."
+            echo "The tag was independently verified above against the verified commit."
+            echo "Existing release is left untouched; verification reruns are idempotent."
+            exit 0
           fi
-          gh release create "$TAG"             --title "Gene X v0.1"             --target "${{ needs.verify-build-train-package.outputs.commit }}"             --notes "Gene X v0.1 verified release. The workflow compiled and imported the full package, ran the test suite, executed a generic learning/training smoke run, built wheel/sdist artifacts, validated wheel installation, and assembled a portable distribution."             release-assets/dist/*             release-assets/Gene-X-v0.1-linux-x86_64.tar.gz             release-assets/release/SHA256SUMS
+          gh release create "$TAG" \
+            --title "Gene X v0.1" \
+            --target "${{ needs.verify-build-train-package.outputs.commit }}" \
+            --notes "Gene X v0.1 verified release. The workflow compiled and imported the full package, ran the test suite, executed a generic learning/training smoke run, built wheel/sdist artifacts, validated wheel installation, and assembled a portable distribution." \
+            release-assets/dist/* \
+            release-assets/Gene-X-v0.1-linux-x86_64.tar.gz \
+            release-assets/release/SHA256SUMS
