@@ -3,4 +3,6 @@ from .dataset import DatasetRecord, DatasetManifest, DatasetShard, JsonlDatasetB
 from .distributed import DistributedTrainer, DistributedResult, WorkerSpec
 from .synchronize import SynchronousAggregator, average_state_dicts
 from .catalog import DatasetCatalog
-__all__=["DatasetRecord","DatasetManifest","DatasetShard","JsonlDatasetBuilder","DistributedTrainer","DistributedResult","WorkerSpec"]
+from .pipeline import TrainingConfig, TrainingMetrics, TrainingReport, TrainingPipeline
+from .manifest import RunManifest, create_manifest
+__all__=["DatasetRecord","DatasetManifest","DatasetShard","JsonlDatasetBuilder","DistributedTrainer","DistributedResult","WorkerSpec","SynchronousAggregator","average_state_dicts","DatasetCatalog","TrainingConfig","TrainingMetrics","TrainingReport","TrainingPipeline","RunManifest","create_manifest"]
