@@ -20,7 +20,7 @@ jobs:
             path: tests/runtime tests/test_persistence.py tests/test_runtime_organism.py tests/test_durable_autonomy.py
             filter: ""
           - name: integration
-            path: tests/integration tests/end-to-end tests/cognition
+            path: tests/integration tests/end-to-end tests/cognition tests/test_gene_system.py
             filter: ""
           - name: security-tools
             path: tests/security tests/tools
