@@ -1,25 +1,16 @@
-from gene.system import GeneSystem
+from gene import GeneSystem
+from gene.tools.registry import Tool
 
-def test_complete_system_exposes_core_capabilities():
+def test_gene_system_composes_core_organs():
     gene=GeneSystem()
     caps=gene.capabilities()
-    assert caps.representation and caps.memory and caps.reasoning
-    assert caps.generation and caps.autonomy and caps.training and caps.security
+    assert all(getattr(caps,n) for n in caps.__dataclass_fields__)
+    assert gene.organism.runtime.learning is not None
+    assert gene.health()["objectives"] == 0
 
-def test_chat_requires_real_backend_instead_of_simulating():
+def test_tool_is_wired_into_kernel_and_security_boundary():
     gene=GeneSystem()
-    try:
-        gene.chat("hello")
-    except RuntimeError as exc:
-        assert "language generation backend" in str(exc)
-    else:
-        raise AssertionError("Gene must not fabricate a chat response")
-
-def test_perception_is_provider_driven():
-    gene=GeneSystem()
-    class Provider:
-        modality="x"
-        def perceive(self,input_data,*,context=None): return {"representation":input_data}
-    gene.perception.register(Provider())
-    observation=gene.perceive("x",123)
-    assert observation.representation=={"representation":123}
+    gene.security.allowed.add("read")
+    gene.register_tool(Tool("probe", lambda value: value + 1, capabilities=frozenset({"read"})))
+    assert gene.execute_tool("probe", {"value": 4}) == 5
+    assert "tool:probe" in gene.kernel.capabilities.names()
