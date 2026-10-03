@@ -1,0 +1,209 @@
+name: Gene X v0.1 Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag"
+        required: true
+        default: "v.0.1"
+      ref:
+        description: "Commit/branch to release"
+        required: true
+        default: "main"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gene-x-release-v0-1
+  cancel-in-progress: false
+
+jobs:
+  verify-build-train-package:
+    name: Verify, build, train-smoke, package
+    runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.meta.outputs.package_version }}
+      commit: ${{ steps.meta.outputs.commit }}
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build/test tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build pytest
+
+      - name: Validate package metadata
+        id: meta
+        shell: bash
+        run: |
+          VERSION=$(python - <<'PY'
+          import tomllib
+          with open("pyproject.toml", "rb") as f:
+              print(tomllib.load(f)["project"]["version"])
+          PY
+          )
+          TAG="${{ inputs.tag }}"
+          test "$TAG" = "v.0.1"
+          test "$VERSION" = "0.1.0"
+          echo "package_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Compile every Python package
+        run: |
+          python -m compileall -q gene trainers benchmarks data configs interfaces
+
+      - name: Import every Gene module
+        run: |
+          python - <<'PY'
+          import importlib
+          import pkgutil
+          import gene
+          failures = []
+          for mod in pkgutil.walk_packages(gene.__path__, gene.__name__ + "."):
+              try:
+                  importlib.import_module(mod.name)
+              except Exception as exc:
+                  failures.append(f"{mod.name}: {type(exc).__name__}: {exc}")
+          if failures:
+              print("\n".join(failures))
+              raise SystemExit(1)
+          print("All Gene modules imported successfully.")
+          PY
+
+      - name: Run complete test suite
+        run: python -m pytest -q
+
+      - name: Run generic learning/training smoke
+        run: |
+          mkdir -p /tmp/gene-release/datasets /tmp/gene-release/checkpoints
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          out = Path("/tmp/gene-release/datasets/release-smoke.jsonl")
+          records = []
+          for i in range(32):
+              x = [((i + j) % 11) / 10.0 for j in range(64)]
+              y = [sum(x) / len(x), x[0], x[-1], float(i % 3)]
+              records.append({"input": x, "target": y, "metadata": {"sample": i}})
+          out.write_text("\n".join(json.dumps(r, sort_keys=True) for r in records) + "\n", encoding="utf-8")
+          PY
+          python trainers/foundation.py             --dataset /tmp/gene-release/datasets/release-smoke.jsonl             --input-size 64             --hidden-size 64             --epochs 1             --learning-rate 0.001             --batch-size 4             --checkpoint-dir /tmp/gene-release/checkpoints             --run-id release-smoke
+
+      - name: Build source distribution and wheel
+        run: python -m build --sdist --wheel
+
+      - name: Validate built wheel installation
+        run: |
+          python -m venv /tmp/gene-release-venv
+          /tmp/gene-release-venv/bin/python -m pip install dist/*.whl
+          /tmp/gene-release-venv/bin/python - <<'PY'
+          import gene
+          from gene import GeneSystem
+          g = GeneSystem()
+          print("Gene X", gene.__version__)
+          print(g.health())
+          PY
+
+      - name: Assemble portable runnable distribution
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf release
+          mkdir -p release/Gene-X-v0.1/datasets
+          mkdir -p release/Gene-X-v0.1/checkpoints
+          mkdir -p release/Gene-X-v0.1/configs
+          cp dist/*.whl release/Gene-X-v0.1/
+          cp dist/*.tar.gz release/Gene-X-v0.1/
+          cp configs/training/foundation_seed.json release/Gene-X-v0.1/configs/
+          cp /tmp/gene-release/datasets/release-smoke.jsonl release/Gene-X-v0.1/datasets/
+          cp /tmp/gene-release/checkpoints/* release/Gene-X-v0.1/checkpoints/ || true
+          cat > release/Gene-X-v0.1/install.sh <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "$0")" && pwd)"
+          python3 -m pip install "$ROOT"/gene_x-*.whl
+          echo "Gene X installed. Use: gene --help"
+          SH
+          chmod +x release/Gene-X-v0.1/install.sh
+          cat > release/Gene-X-v0.1/README.txt <<'TXT'
+          Gene X v0.1
+
+          This directory contains the installable Gene X wheel, source archive,
+          training configuration, datasets directory, and checkpoint directory.
+
+          Install:
+            ./install.sh
+
+          Add your own JSONL datasets under datasets/ and train selected
+          trainable substrates with the Gene training tools.
+          TXT
+          tar -C release -czf "Gene-X-v0.1-linux-x86_64.tar.gz" Gene-X-v0.1
+          sha256sum dist/* "Gene-X-v0.1-linux-x86_64.tar.gz" > release/SHA256SUMS
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gene-x-v0.1-build
+          path: |
+            dist/*
+            Gene-X-v0.1-linux-x86_64.tar.gz
+            release/SHA256SUMS
+          if-no-files-found: error
+
+  publish:
+    name: Create v.0.1 GitHub release
+    needs: verify-build-train-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout verified commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.verify-build-train-package.outputs.commit }}
+          fetch-depth: 0
+
+      - name: Download verified artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: gene-x-v0.1-build
+          path: release-assets
+
+      - name: Create or verify release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          COMMIT: ${{ needs.verify-build-train-package.outputs.commit }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            EXISTING=$(git ls-remote origin "refs/tags/$TAG" | awk '{print $1}')
+            test "$EXISTING" = "$COMMIT" || {
+              echo "Tag $TAG already exists on a different commit: $EXISTING"
+              exit 1
+            }
+          else
+            git tag -a "$TAG" "$COMMIT" -m "Gene X $TAG"
+            git push origin "$TAG"
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to mutate it."
+            exit 1
+          fi
+          gh release create "$TAG"             --title "Gene X v0.1"             --target "${{ needs.verify-build-train-package.outputs.commit }}"             --notes "Gene X v0.1 verified release. The workflow compiled and imported the full package, ran the test suite, executed a generic learning/training smoke run, built wheel/sdist artifacts, validated wheel installation, and assembled a portable distribution."             release-assets/dist/*             release-assets/Gene-X-v0.1-linux-x86_64.tar.gz             release-assets/release/SHA256SUMS
