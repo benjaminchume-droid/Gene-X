@@ -33,7 +33,7 @@ jobs:
       - name: Checkout release ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Set up Python
@@ -57,7 +57,7 @@ jobs:
               print(tomllib.load(f)["project"]["version"])
           PY
           )
-          TAG="${{ inputs.tag }}"
+          TAG="${{ inputs.tag || 'v.0.1' }}"
           test "$TAG" = "v.0.1"
           test "$VERSION" = "0.1.0"
           echo "package_version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -185,7 +185,7 @@ jobs:
       - name: Create or verify release tag
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ inputs.tag || 'v.0.1' }}
           COMMIT: ${{ needs.verify-build-train-package.outputs.commit }}
         run: |
           set -euo pipefail
@@ -203,7 +203,7 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ inputs.tag || 'v.0.1' }}
         run: |
           set -euo pipefail
           if gh release view "$TAG" >/dev/null 2>&1; then
