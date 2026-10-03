@@ -99,7 +99,7 @@ jobs:
           records = []
           for i in range(32):
               x = [((i + j) % 11) / 10.0 for j in range(64)]
-              y = [sum(x) / len(x), x[0], x[-1], float(i % 3)]
+              y = [((i + j) % 17) / 16.0 for j in range(64)]
               records.append({"input": x, "target": y, "metadata": {"sample": i}})
           out.write_text("\n".join(json.dumps(r, sort_keys=True) for r in records) + "\n", encoding="utf-8")
           PY
