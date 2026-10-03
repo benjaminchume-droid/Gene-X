@@ -46,6 +46,8 @@ class TrainingPipeline:
         started=time.time(); metrics=[]; latest=None
         for _ in range(self.config.epochs):
             for batch in batches:
+                if self._is_sample(batch):
+                    batch=(batch,)
                 result=self.model.fit(batch,epochs=1,learning_rate=self.config.learning_rate)
                 self.step+=result.samples
                 m=TrainingMetrics(self.step,float(result.loss),time.time()-started); metrics.append(m)
@@ -53,6 +55,15 @@ class TrainingPipeline:
                 if self.step % self.config.checkpoint_every==0: latest=self._save(m)
         if metrics and latest is None: latest=self._save(metrics[-1])
         return TrainingReport(self.config.run_id,self.step,tuple(metrics),latest)
+
+    @staticmethod
+    def _is_sample(value: Any) -> bool:
+        if not isinstance(value, (tuple, list)) or len(value) != 2:
+            return False
+        sequence, target = value
+        if not isinstance(sequence, (tuple, list)) or not isinstance(target, (tuple, list)):
+            return False
+        return bool(target) and all(isinstance(x, (int, float)) for x in target)
 
     def resume(self,path:str|Path)->TrainingMetrics:
         item=json.loads(Path(path).read_text(encoding="utf-8"))
