@@ -103,7 +103,7 @@ jobs:
               records.append({"input": x, "target": y, "metadata": {"sample": i}})
           out.write_text("\n".join(json.dumps(r, sort_keys=True) for r in records) + "\n", encoding="utf-8")
           PY
-          python trainers/foundation.py             --dataset /tmp/gene-release/datasets/release-smoke.jsonl             --input-size 64             --hidden-size 64             --epochs 1             --learning-rate 0.001             --batch-size 4             --checkpoint-dir /tmp/gene-release/checkpoints             --run-id release-smoke
+          python trainers/foundation.py             /tmp/gene-release/datasets/release-smoke.jsonl             --input-size 64             --hidden-size 64             --epochs 1             --learning-rate 0.001             --batch-size 4             --checkpoint-dir /tmp/gene-release/checkpoints             --run-id release-smoke
 
       - name: Build source distribution and wheel
         run: python -m build --sdist --wheel
