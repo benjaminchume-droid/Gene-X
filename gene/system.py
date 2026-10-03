@@ -5,6 +5,9 @@ from typing import Any, Callable
 from gene.interface import Gene, GeneResponse
 from gene.consultation.manager import ConsultationManager, ConsultationRequest, ConsultationResult
 from gene.tools.registry import Tool, ToolRegistry
+from gene.capabilities.capability import Capability
+from gene.runtime.learning_loop import LearningLoop
+from gene.learning.signals import LearningSignal
 from gene.evaluation.suite import EvaluationSuite, EvaluationReport
 from gene.brain.context import ContextStore
 from gene.substrate.ontology import WorldModel
@@ -62,6 +65,15 @@ class GeneSystem(Gene):
     video: VideoEngine = field(default_factory=VideoEngine)
     world_generator: WorldEngine = field(default_factory=WorldEngine)
 
+    def __post_init__(self) -> None:
+        # Connect execution learning to the same organism used by objectives.
+        self.organism.runtime.attach_learning(
+            LearningLoop(self.learner, lambda _input, outcome: (
+                LearningSignal(kind="outcome", value=1.0 if isinstance(outcome, dict) and outcome.get("status") == "succeeded" else 0.0, source="runtime"),
+            ))
+        )
+
+
     def training_session(self, teachers=()):
         return GeneTrainingSession(self.learner, memory=self.organism.memory, teachers=teachers)
 
@@ -84,6 +96,19 @@ class GeneSystem(Gene):
 
     def register_tool(self, tool: Tool) -> None:
         self.tools.register(tool)
+        self.kernel.capabilities.register(Capability(
+            name=f"tool:{tool.name}",
+            description=tool.description,
+            invoke=lambda arguments, _tool=tool: _tool.execute(**arguments) if isinstance(arguments, dict) else _tool.execute(arguments),
+            permissions=tool.capabilities,
+            source="tool",
+        ))
+
+    def execute_tool(self, name: str, arguments: Any = None) -> Any:
+        tool = self.tools.get(name)
+        for capability in tool.capabilities:
+            self.security.require(capability)
+        return tool.execute(**arguments) if isinstance(arguments, dict) else tool.execute(arguments)
 
     def register_encoder(self, modality: str, encoder: TrainableEncoder) -> None:
         if not modality: raise ValueError("modality cannot be empty")
