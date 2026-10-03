@@ -191,6 +191,8 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --force --tags origin
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null 2>&1; then
             EXISTING_COMMIT=$(git rev-list -n 1 "$TAG")
             test "$EXISTING_COMMIT" = "$COMMIT" || {
