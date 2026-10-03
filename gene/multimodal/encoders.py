@@ -53,7 +53,7 @@ class AudioEncoder(TrainableEncoder):
     def encode(self, values, *args):
         if args:
             flat=tuple(float(v) for v in values)
-            return EncodedSignal((float(len(flat)),sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(v*v for v in flat)),(len(flat),))
+            return EncodedSignal((sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(v*v for v in flat),float(len(flat))),(len(flat),))
         return super().encode(values)
 
 class VideoEncoder(TrainableEncoder):
@@ -105,7 +105,7 @@ class _SummaryEncoder:
                 for item in node: visit(item)
             else: flat.append(float(node))
         visit(value)
-        return EncodedSignal((float(len(flat)),sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(x*x for x in flat)),(len(flat),))
+        return EncodedSignal((sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(x*x for x in flat),float(len(flat))),(len(flat),))
 
 class LegacySpatialEncoder:
     def encode(self, value):
