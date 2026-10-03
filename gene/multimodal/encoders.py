@@ -48,3 +48,40 @@ class ImageEncoder(TrainableEncoder): pass
 class AudioEncoder(TrainableEncoder): pass
 class VideoEncoder(TrainableEncoder): pass
 class SpatialEncoder(TrainableEncoder): pass
+
+
+@dataclass(frozen=True, slots=True)
+class EncodedSignal:
+    vector: tuple[float, ...]
+    shape: tuple[int, ...] = ()
+
+class NumericImageEncoder:
+    def encode(self, value):
+        flat=[]
+        shape=[]
+        def visit(node, depth=0):
+            if isinstance(node,(list,tuple)):
+                if len(shape)<=depth: shape.append(len(node))
+                for item in node: visit(item,depth+1)
+            else: flat.append(float(node))
+        visit(value)
+        return EncodedSignal(tuple(flat),tuple(shape))
+
+class _SummaryEncoder:
+    def encode(self, value, *args):
+        flat=[]
+        def visit(node):
+            if isinstance(node,(list,tuple)):
+                for item in node: visit(item)
+            else: flat.append(float(node))
+        visit(value)
+        return EncodedSignal((float(len(flat)),sum(flat),min(flat) if flat else 0.0,max(flat) if flat else 0.0,sum(x*x for x in flat)),(len(flat),))
+
+class LegacySpatialEncoder:
+    def encode(self, value):
+        rows=[tuple(float(x) for x in row) for row in value]
+        return EncodedSignal(tuple(x for row in rows for x in row),(len(rows),len(rows[0]) if rows else 0))
+
+NumericAudioEncoder=_SummaryEncoder
+NumericVideoEncoder=_SummaryEncoder
+NumericSpatialEncoder=LegacySpatialEncoder
