@@ -11,9 +11,5 @@ from .journal import JournalEntry, RuntimeJournal
 from .organism import GeneOrganism, OrganismObservation
 from .autonomous_durable import DurableAutonomousDriver, DurableRun
 from .inbox import ObjectiveInbox, ObjectiveMessage
-__all__=[
-    "CognitiveRuntime","ExecutionRecord","Runtime","Scheduler","ScheduledWork",
-    "RecoveryPolicy","RecoveryAction","AutonomousDriver","AutonomousRun",
-    "RuntimePersistence","LearningLoop","Arbitration","ObjectiveArbiter",
-    "ResourceBudget","JournalEntry","RuntimeJournal","GeneOrganism","OrganismObservation",
-]
+from .durable import DurableRuntime
+__all__=["CognitiveRuntime","ExecutionRecord","Runtime","Scheduler","ScheduledWork","RecoveryPolicy","RecoveryAction","AutonomousDriver","AutonomousRun","RuntimePersistence","LearningLoop","Arbitration","ObjectiveArbiter","ResourceBudget","JournalEntry","RuntimeJournal","GeneOrganism","OrganismObservation","DurableAutonomousDriver","DurableRun","ObjectiveInbox","ObjectiveMessage","DurableRuntime"]
