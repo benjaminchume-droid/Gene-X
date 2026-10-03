@@ -11,3 +11,6 @@ dependencies = []
 
 [tool.hatch.build.targets.wheel]
 packages = ["gene", "trainers", "benchmarks", "configs", "data", "interfaces"]
+
+[project.scripts]
+gene = "gene.cli:main"
