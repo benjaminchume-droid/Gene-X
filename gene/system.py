@@ -11,6 +11,8 @@ from gene.substrate.ontology import WorldModel
 from gene.multimodal.encoders import TrainableEncoder
 from gene.multimodal.fusion_learning import LearnedFusion
 from gene.generation.engines import TextEngine, ImageEngine, AudioEngine, MusicEngine, VideoEngine, WorldEngine
+from gene.perception.pipeline import PerceptionPipeline, Observation
+from gene.security.policy import Policy
 
 @dataclass(frozen=True, slots=True)
 class GeneCapabilities:
@@ -42,6 +44,9 @@ class GeneSystem(Gene):
     """
     context: ContextStore = field(default_factory=ContextStore)
     world: WorldModel = field(default_factory=WorldModel)
+    perception: PerceptionPipeline = field(default_factory=PerceptionPipeline)
+    security: Policy = field(default_factory=Policy)
+    chat_backend: Callable[[Any], str] | None = None
     consultation: ConsultationManager = field(default_factory=ConsultationManager)
     tools: ToolRegistry = field(default_factory=ToolRegistry)
     evaluation: EvaluationSuite = field(default_factory=EvaluationSuite)
@@ -53,6 +58,23 @@ class GeneSystem(Gene):
     music: MusicEngine = field(default_factory=MusicEngine)
     video: VideoEngine = field(default_factory=VideoEngine)
     world_generator: WorldEngine = field(default_factory=WorldEngine)
+
+    def register_chat_backend(self, backend: Callable[[Any], str]) -> None:
+        self.chat_backend = backend
+
+    def chat(self, input_value: Any, *, complexity: float = 2.0) -> GeneResponse:
+        if self.chat_backend is None:
+            raise RuntimeError("no language generation backend is registered")
+        return self.think(
+            input_value,
+            complexity=complexity,
+            interpret=lambda value: self.kernel.observe_language(str(value))[0],
+            reason=lambda representation, retrieved: representation,
+            act=self.chat_backend,
+        )
+
+    def perceive(self, modality: str, input_data: Any, *, context: Any = None) -> Observation:
+        return self.perception.perceive(modality, input_data, context=context)
 
     def register_tool(self, tool: Tool) -> None:
         self.tools.register(tool)
@@ -85,6 +107,8 @@ class GeneSystem(Gene):
             "registered_tools": self.tools.names(),
             "consultation_sources": self.consultation.sources(),
             "encoders": tuple(self.encoders),
+            "perception_providers": tuple(self.perception.providers),
+            "security_allowed": tuple(sorted(self.security.allowed)),
             "objectives": len(self.organism.runtime.objectives.objectives),
             "memory_records": len(tuple(self.organism.memory.records())),
             "evaluation_cases": len(self.evaluation.cases),
