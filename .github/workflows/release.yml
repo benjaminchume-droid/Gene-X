@@ -1,28 +1,118 @@
 name: Gene X Release
+
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create"
+        required: true
+        default: "v.0.1"
+        type: string
+
+permissions:
+  contents: write
+
 jobs:
   verify-and-package:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout source
+        uses: actions/checkout@v4
         with:
-          python-version: '3.11'
-      - name: Install build tooling
-        run: python -m pip install --upgrade pip build pytest
-      - name: Install package
-        run: python -m pip install -e .
-      - name: Run complete test suite
+          fetch-depth: 0
+
+      - name: Set release tag
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          if [[ -z "${TAG}" ]]; then
+            echo "Release tag is empty" >&2
+            exit 1
+          fi
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "Release tag: ${TAG}"
+
+      - name: Ensure manual-dispatch tag exists
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists."
+          else
+            git tag "${TAG}" "${GITHUB_SHA}"
+            git push origin "refs/tags/${TAG}"
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build/test tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build pytest
+
+      - name: Build package
+        run: python -m build
+
+      - name: Install built wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --force-reinstall dist/*.whl
+
+      - name: Run complete test suite against built package
         run: python -m pytest -q
+
       - name: Compile package
         run: python -m compileall -q gene trainers benchmarks data configs interfaces
-      - name: Build distributions
-        run: python -m build
-      - name: Upload distributions
+
+      - name: Verify installed CLI
+        run: |
+          gene --help
+          python -c "import gene; print(gene.__version__)"
+
+      - name: Package source and configuration bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release/gene-x
+          cp -R gene trainers benchmarks configs data interfaces pyproject.toml release/gene-x/
+          cp -R dist release/gene-x/
+          tar -C release -czf "gene-x-${{ steps.release.outputs.tag }}.tar.gz" gene-x
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gene-x-distribution
-          path: dist/
+          name: gene-x-${{ steps.release.outputs.tag }}
+          path: |
+            dist/*
+            gene-x-*.tar.gz
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" dist/* "gene-x-${TAG}.tar.gz" --clobber
+          else
+            gh release create "${TAG}" dist/* "gene-x-${TAG}.tar.gz" \
+              --title "Gene X ${TAG}" \
+              --generate-notes
+          fi
