@@ -1,0 +1,21 @@
+{
+  "run_id": "foundation-seed",
+  "model": {
+    "input_size": 64,
+    "hidden_size": 64
+  },
+  "training": {
+    "epochs": 1,
+    "learning_rate": 0.001,
+    "batch_size": 4,
+    "checkpoint_every": 100
+  },
+  "data": {
+    "format": "jsonl",
+    "record_schema": {
+      "input": "sequence of numeric vectors",
+      "target": "numeric vector",
+      "metadata": "optional object"
+    }
+  }
+}
