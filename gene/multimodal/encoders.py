@@ -77,6 +77,9 @@ class SpatialEncoder(TrainableEncoder):
         if args:
             rows=[tuple(float(x) for x in row) for row in values]
             return EncodedSignal(tuple(x for row in rows for x in row),(len(rows),len(rows[0]) if rows else 0))
+        if isinstance(values,(list,tuple)) and values and isinstance(values[0],(list,tuple)):
+            rows=[tuple(float(x) for x in row) for row in values]
+            return EncodedSignal(tuple(x for row in rows for x in row),(len(rows),len(rows[0]) if rows else 0))
         return super().encode(values)
 
 
