@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - main
+    paths:
+      - ".release-v0.1"
   workflow_dispatch:
     inputs:
       tag:
@@ -31,8 +35,10 @@ jobs:
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.tag }}"
-          else
+          elif [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="v.0.1"
           fi
           if [[ -z "${TAG}" ]]; then
             echo "Release tag is empty" >&2
@@ -41,8 +47,8 @@ jobs:
           echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
           echo "Release tag: ${TAG}"
 
-      - name: Ensure manual-dispatch tag exists
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+      - name: Ensure release tag exists
+        if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_type == 'branch') }}
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release.outputs.tag }}
