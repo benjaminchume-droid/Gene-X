@@ -5,4 +5,5 @@ from .synchronize import SynchronousAggregator, average_state_dicts
 from .catalog import DatasetCatalog
 from .pipeline import TrainingConfig, TrainingMetrics, TrainingReport, TrainingPipeline
 from .manifest import RunManifest, create_manifest
-__all__=["DatasetRecord","DatasetManifest","DatasetShard","JsonlDatasetBuilder","DistributedTrainer","DistributedResult","WorkerSpec","SynchronousAggregator","average_state_dicts","DatasetCatalog","TrainingConfig","TrainingMetrics","TrainingReport","TrainingPipeline","RunManifest","create_manifest"]
+from .organism import GeneTrainingSession, GeneTrainingReport
+__all__=["DatasetRecord","DatasetManifest","DatasetShard","JsonlDatasetBuilder","DistributedTrainer","DistributedResult","WorkerSpec","SynchronousAggregator","average_state_dicts","DatasetCatalog","TrainingConfig","TrainingMetrics","TrainingReport","TrainingPipeline","RunManifest","create_manifest","GeneTrainingSession","GeneTrainingReport"]
