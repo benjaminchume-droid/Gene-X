@@ -3,7 +3,6 @@ from gene.system import GeneSystem
 def test_complete_system_exposes_core_capabilities():
     gene=GeneSystem()
     caps=gene.capabilities()
-    assert all(vars(caps).values()) if False else True
     assert caps.representation and caps.memory and caps.reasoning
     assert caps.generation and caps.autonomy and caps.training and caps.security
 
