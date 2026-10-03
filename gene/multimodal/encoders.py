@@ -48,6 +48,8 @@ class ImageEncoder(TrainableEncoder):
     pass
 
 class AudioEncoder(TrainableEncoder):
+    def __init__(self, input_size=None, latent_size=64, seed=7):
+        super().__init__(input_size or 1, latent_size, seed)
     def encode(self, values, *args):
         if args:
             flat=tuple(float(v) for v in values)
@@ -55,6 +57,8 @@ class AudioEncoder(TrainableEncoder):
         return super().encode(values)
 
 class VideoEncoder(TrainableEncoder):
+    def __init__(self, input_size=None, latent_size=64, seed=7):
+        super().__init__(input_size or 1, latent_size, seed)
     def encode(self, values, *args):
         if args:
             flat=[]
@@ -67,6 +71,8 @@ class VideoEncoder(TrainableEncoder):
         return super().encode(values)
 
 class SpatialEncoder(TrainableEncoder):
+    def __init__(self, input_size=None, latent_size=64, seed=7):
+        super().__init__(input_size or 1, latent_size, seed)
     def encode(self, values, *args):
         if args:
             rows=[tuple(float(x) for x in row) for row in values]
