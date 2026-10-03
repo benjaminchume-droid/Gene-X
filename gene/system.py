@@ -7,7 +7,7 @@ from gene.consultation.manager import ConsultationManager, ConsultationRequest, 
 from gene.tools.registry import Tool, ToolRegistry
 from gene.capabilities.capability import Capability
 from gene.runtime.learning_loop import LearningLoop
-from gene.learning.signals import LearningSignal
+from gene.learning.signals import LearningSignal, SignalKind
 from gene.evaluation.suite import EvaluationSuite, EvaluationReport
 from gene.brain.context import ContextStore
 from gene.substrate.ontology import WorldModel
@@ -69,7 +69,7 @@ class GeneSystem(Gene):
         # Connect execution learning to the same organism used by objectives.
         self.organism.runtime.attach_learning(
             LearningLoop(self.learner, lambda _input, outcome: (
-                LearningSignal(kind="outcome", value=1.0 if isinstance(outcome, dict) and outcome.get("status") == "succeeded" else 0.0, source="runtime"),
+                LearningSignal(kind=SignalKind.REWARD, value=1.0 if isinstance(outcome, dict) and outcome.get("status") == "succeeded" else 0.0, source="runtime"),
             ))
         )
 
